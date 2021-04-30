@@ -1,17 +1,30 @@
 
+#+---------------------------------------------------------------------
+#+ Python Script for converting wrfchemi files into CMAQ emission files
+#+ Check the 'CHANGE' comments to define your directories for the run
+#+ Author: Camilo Moreno
+#+ Email = cama9709@gmail.com
+#+---------------------------------------------------------------------
 #%%
-import pandas as pd
 import re
-from netCDF4 import Dataset
+import glob 
 import openpyxl
 import numpy as np
-import glob 
+import pandas as pd
+from netCDF4 import Dataset
+from collections import Counter
 from os import listdir, scandir, getcwd
 from datetime import datetime, date, timedelta
-from collections import Counter
 
-#+ return the value of days that have 24 files and that its next file day exists at least one
+
 def get_complete_days(days):
+    """Return the value of days that have 24 wrf hour files and that at
+    least exist the 00 hr file for the netx day.
+
+    Keyword arguments:
+    days -- list containing the dates_hours in 'YYYYDDDHH' format
+    """
+
     days_only = [day[:7] for day in days]
     days_only = list(dict.fromkeys(days_only))
 
@@ -26,9 +39,14 @@ def get_complete_days(days):
     
     return clean_days
 
-
-#+ Get all wrfout files from a directory and extract days
 def get_wrffiles_days(wrf_dir):
+    """Get all files that begins whith 'wrfchemi_' from the given 
+    wrf_dir directory and extract the complete days found in there.
+
+    Keyword arguments:
+    wrf_dir -- string of the directory whre wrfchemi hour files are
+    """
+
     all_files = [f for f in glob.glob(f'{wrf_dir}/wrfchemi_*')]
     all_files.sort()
 
@@ -47,27 +65,31 @@ def get_wrffiles_days(wrf_dir):
     days = get_complete_days(days)
     return all_files, days
 
-
-#+ GEts the 25 files of the day from the wrf files list
 def get_daywrffiles(all_files, day):
+    """Return the 25 files of the day from the all_files parameter.
+
+    Keyword arguments:
+    all_files -- list of strings containing all the files found 
+    day -- int representing the day of interest in fomrat YYYYDDD
+    """
+
     day_str = str(day)
     year = int(day_str[0:4])
     day_year = int(day_str[4:])
 
     date = datetime(year, 1, 1) + timedelta(day_year - 1)
     daym = date.timetuple().tm_mday
-    str_daym = '0' * (2 - len(str(daym))) + str(daym)
+    str_daym = '0'*(2 - len(str(daym))) + str(daym)
     month = date.timetuple().tm_mon
-    str_month = '0' * (2 - len(str(month))) + str(month)
+    str_month = '0'*(2 - len(str(month))) + str(month)
 
     next_date = datetime(year, 1, 1) + timedelta(day_year)
     next_daym = next_date.timetuple().tm_mday
-    str_next_daym = '0' * (2 - len(str(next_daym))) + str(next_daym)
+    str_next_daym = '0'*(2 - len(str(next_daym))) + str(next_daym)
     next_month = next_date.timetuple().tm_mon
-    str_next_month = '0' * (2 - len(str(next_month))) + str(next_month)
+    str_next_month = '0'*(2 - len(str(next_month))) + str(next_month)
     next_year = next_date.timetuple().tm_year
     str_next_year = str(next_year)
-
 
     date_str = f'{year}-{str_month}-{str_daym}'
     next_date_str = f'{str_next_year}-{str_next_month}-{str_next_daym}_00'
@@ -79,18 +101,27 @@ def get_daywrffiles(all_files, day):
     day_files.extend(next_day_00)
     return day_files
 
-
-#+ Read and set maping species info in df_map
 def set_conv_map(map_file):
+    """Return and set the maping species info in df_map.
+
+    Keyword arguments:
+    map_file -- string of the directory location of the mecanism conversion excel
+    """
+
     df_map = pd.DataFrame(pd.read_excel(map_file))
     df_map = df_map[df_map['WRF_SPC'].notnull() & 
                     df_map['CMAQ_SPC'].notnull()]
     df_map.set_index(pd.Index(range(0,len(df_map))), inplace = True)
     return df_map
 
-
-#+ Create empty arrays of the CMAQ temporal and final especies
 def create_cmaq_spc(df_map):
+    """Return the empty dictionary of the CMAQ temporal especies 
+    and the CMAQ species that will be created in the netCDF files.
+
+    Keyword arguments:
+    df_map -- data frame of the mecanism conversion map
+    """
+
     cmaq_spc_names = list(df_map['CMAQ_SPC'])
     cmaq_spc_names = list(dict.fromkeys(cmaq_spc_names))
     dic_cmaq = {}
@@ -100,12 +131,17 @@ def create_cmaq_spc(df_map):
     
     return dic_cmaq, cmaq_spc_names
 
-
-
-#+ Main loop for converting wrfchemi arrays into CMAQ arrays
-#! It create a unique array for each variable that extends trougth the numbre of files in 'day_files'
-#! asuming that each wrfchemi file contins a unique hour of data
 def array_conv(day_files, df_map, dic_cmaq, day, hr):
+    """Return filled cmaq arrays converted from wrfchemi species.
+
+    Keyword arguments:
+    day_files -- list of strings directions of the files for the day
+    df_map -- data frame of the mecanism conversion map
+    dic_cmaq -- empty dictionary of the CMAQ temporal especies
+    day -- int of the day in format YYYYDDD
+    hr -- initial hour if CMAQ files
+    """
+
     count = 0
     for file in day_files:
         ds_wrf = Dataset(file, open = True, mode = 'r')
@@ -157,13 +193,24 @@ def array_conv(day_files, df_map, dic_cmaq, day, hr):
         hr = (hr + 10000) % 240000
     return dic_cmaq, ds_wrf
 
-
-#+ Create Final NETCDF file
 def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
+    """Create Final NETCDF file.
+
+    Keyword arguments:
+    save_dir -- string of the location for saving the netCDF files
+    day -- int of the day in format YYYYDDD
+    hr -- initial hour if CMAQ files
+    ds_wrf -- last wrf_dataset accessed
+    cmaq_spc_names -- list of strings directions of the files for the day
+    dic_cmaq -- empty dictionary of the CMAQ temporal especies
+    df_map -- data frame of the mecanism conversion map
+    """
+
+    #* Create new netCDF
     new_cmaq_file = f'{save_dir}/Emis_CMAQ_{day}.ncf'
     ds_new_cmaq = Dataset(new_cmaq_file, open = True, mode = 'w', format=  "NETCDF3_CLASSIC")
 
-    #+ Create dimenssions
+    #* Create dimenssions
     TSTEP = ds_new_cmaq.createDimension("TSTEP", None)
     LAY = ds_new_cmaq.createDimension("LAY", len(ds_wrf.dimensions['emissions_zdim_stag']))
     ROW = ds_new_cmaq.createDimension("ROW", len(ds_wrf.dimensions['south_north']))
@@ -171,7 +218,7 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     VAR = ds_new_cmaq.createDimension("VAR", len(cmaq_spc_names))
     DATE_TIME = ds_new_cmaq.createDimension("DATE-TIME", len(dic_cmaq['TFLAG'][0][0][:]))
 
-    #+ Create variables
+    #* Create variables
     for spc in cmaq_spc_names:
         unt = list(df_map[df_map['CMAQ_SPC'] == spc]['UNITS_SDA'])[0]
         var_temp = ds_new_cmaq.createVariable(spc,"f4",("TSTEP", "LAY", "ROW", "COL"))
@@ -184,12 +231,12 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     tflag.long_name = 'TFLAG'
     tflag.var_desc = 'Timestep-valid flags:  (1) YYYYDDD or (2) HHMMSS'
 
-    #+ Fill variables
+    #* Fill variables
     for spc in cmaq_spc_names:
         ds_new_cmaq.variables[spc][:, :, :] = dic_cmaq[spc]
     ds_new_cmaq.variables['TFLAG'][:, :, :] = dic_cmaq['TFLAG']
 
-    #+ Creatae attributes
+    #* Creatae attributes
     varlist = ''
     for spc in cmaq_spc_names:
         space = 16 - len(spc)
@@ -232,21 +279,25 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     for attr in cmaq_attrs:
         ds_new_cmaq.setncattr(attr, cmaq_attrs[attr])
 
-    #+ Close netcdf file
+    #+ Close new netcdf file
     ds_new_cmaq.close()
 
     print(f"{day} Netcdf file DONE")
 
 # %%
 if __name__ == "__main__":
-    map_file = '/Users/camilo/OneDrive - Universidad de los Andes/Estudio/Tesis_maestría/Code/Emissions_conversor/map_conv_table_v2.xlsx'
-    save_dir = '/Volumes/Avispa/EmisCMAQ_from_wrfchemi/all_emis'
+    #CHANGE: map_file is the direction of the excle file where the map conversor is alocated
+    map_file = '/Users/camilo/OneDrive - Universidad de los Andes/Estudio/Tesis_maestría/Code/Emissions_conversor/mozart2cbo5_conv_table.xlsx'
+
+    #CHANGE: wrf_dir is the directory where are all the wrfchemi files you want to comvert to CMAQ emission files
+    wrf_dir = '/Volumes/Avispa/wrfchemi_original/MOZART_sep'
+
+    #CHANGE: save_dir is the directory where you want to save all the new netCDF emission files
+    save_dir = '/Volumes/Avispa/emis/Sep_2018'
+    
     df_map = set_conv_map(map_file)
     dic_cmaq, cmaq_spc_names = create_cmaq_spc(df_map)
-
-    wrf_dir = '/Volumes/Avispa/wrfchemi_original/all_wrfchemi'
     all_files, days = get_wrffiles_days(wrf_dir)
-
     hr = 0
     for day in days:
         day_files = get_daywrffiles(all_files, day)
@@ -259,4 +310,3 @@ if __name__ == "__main__":
         del ds_wrf
     print('All files completed')
 # %%
-#TODO Preguntar a K si es posible sacar las emisiones en MOZART, est'an en RACM y el mapa no sirve
