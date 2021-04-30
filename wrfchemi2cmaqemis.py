@@ -184,6 +184,9 @@ def array_conv(day_files, df_map, dic_cmaq, day, hr):
             dic_cmaq['TFLAG'] = dic_cmaq['TFLAG_temp']
             for spc in cmaq_spc_names:
                 dic_cmaq[spc] = dic_cmaq[f'{spc}_temp']
+                if np.isnan(dic_cmaq[f'{spc}_temp']).any():
+                    print(f'Dictionary: \n {dic_cmaq[f"{spc}_temp"]} \n\nWrf array: \n {wrf_arr} \n\nConv Factor: {conv_fact}\n\nUnit Conversor: {pt_unit_conv}\n\nMol weight: {mol_weigth}')
+
         else: 
             dic_cmaq['TFLAG'] = np.concatenate((dic_cmaq['TFLAG'], dic_cmaq['TFLAG_temp']), axis = 0)
             for spc in cmaq_spc_names:
@@ -310,3 +313,4 @@ if __name__ == "__main__":
         del ds_wrf
     print('All files completed')
 # %%
+#TODO el POC, y qui'en sabe qu'e otras especies, tienen datos nulos
