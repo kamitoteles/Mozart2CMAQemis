@@ -12,8 +12,18 @@ from collections import Counter
 
 #+ return the value of days that have 24 files and that its next file day exists at least one
 def get_complete_days(days):
-    dic = dict(Counter(days))
-    clean_days = [key for key, value in dic.items() if value == 24 and key +1 in days]
+    days_only = [day[:7] for day in days]
+    days_only = list(dict.fromkeys(days_only))
+
+    clean_days = []
+    for day_o in days_only:
+        sum_days = 0
+        for day in days:
+            if day_o in day:
+                sum_days = sum_days + 1
+        if sum_days == 24 and day_o + '0' in days:
+            clean_days.append(int(day_o))
+    
     return clean_days
 
 
@@ -24,14 +34,15 @@ def get_wrffiles_days(wrf_dir):
 
     days = []
     for file in all_files:
+        hr = day = int(file[-8:-6])
         day = int(file[-11:-9])
         month = int(file[-14:-12])
         year = int(file[-19:-15])
 
         date_indays = date(year, month, day).timetuple().tm_yday
         space = 3 - len(str(date_indays))
-        string_date = str(year) + '0'*space + str(date_indays)
-        days.append(int(string_date))
+        string_date = str(year) + '0'*space + str(date_indays) + str(hr)
+        days.append(string_date)
 
     days = get_complete_days(days)
     return all_files, days
