@@ -34,7 +34,7 @@ def get_complete_days(days):
         for day in days:
             if day_o in day:
                 sum_days = sum_days + 1
-        if sum_days == 24 and day_o + '0' in days:
+        if sum_days == 24 and str(int(day_o) + 1) + '0' in days:
             clean_days.append(int(day_o))
     
     return clean_days
@@ -52,7 +52,7 @@ def get_wrffiles_days(wrf_dir):
 
     days = []
     for file in all_files:
-        hr = day = int(file[-8:-6])
+        hr = int(file[-8:-6])
         day = int(file[-11:-9])
         month = int(file[-14:-12])
         year = int(file[-19:-15])
@@ -185,6 +185,7 @@ def array_conv(day_files, df_map, dic_cmaq, day, hr):
             for spc in cmaq_spc_names:
                 dic_cmaq[spc] = dic_cmaq[f'{spc}_temp']
                 if np.isnan(dic_cmaq[f'{spc}_temp']).any():
+                    print(f'ERROR: there are NaN values in the array result of interaction for these variables:\n')
                     print(f'Dictionary: \n {dic_cmaq[f"{spc}_temp"]} \n\nWrf array: \n {wrf_arr} \n\nConv Factor: {conv_fact}\n\nUnit Conversor: {pt_unit_conv}\n\nMol weight: {mol_weigth}')
 
         else: 
