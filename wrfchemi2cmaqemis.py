@@ -314,4 +314,3 @@ if __name__ == "__main__":
         del ds_wrf
     print('All files completed')
 # %%
-#TODO el POC, y qui'en sabe qu'e otras especies, tienen datos nulos
