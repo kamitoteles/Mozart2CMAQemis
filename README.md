@@ -36,6 +36,12 @@ This excel are provided in order to give the script the information of how to co
 
 **WARNNING:** these files are in beta testing and could be incomplete for certain species. Please check and edit the values before using the script to ensure better results for your cases.
 
+## Proyection, coordinates and grid
+
+You **MUST** change the cmaq_attrs dictionary values in the create_ncfile() function. There are de values for all the final CMAQ IO/API attributes that will be saved in the netCDF file. The most important are the ones related with the grid description. 
+
+NCOLS, NROWS, NLAYS, XCELL, and YCELL are taken from de original WRF-chemi file values, but all grid attributes (P_ALP, P_BET, P_GAM, XCENT, YCENT, XORIG, and YORIG) are predefined for a test grid,  so you must change this for your specific case.
+
 ## Output
 
 The output files would be saved whith the format "Emis_CMAQ_YYYYDDD.ncf", where the YYYYDDD references the date of the day whit the year "YYYY" and the day number for thar year "DDD".
