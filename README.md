@@ -40,7 +40,7 @@ This excel are provided in order to give the script the information of how to co
 
 You **MUST** change the cmaq_attrs dictionary values in the create_ncfile() function. There are de values for all the final CMAQ IO/API attributes that will be saved in the netCDF file. The most important are the ones related with the grid description. 
 
-NCOLS, NROWS, NLAYS, XCELL, and YCELL are taken from de original WRF-chemi file values, but all grid attributes (P_ALP, P_BET, P_GAM, XCENT, YCENT, XORIG, and YORIG) are predefined for a test grid,  so you must change this for your specific case.
+NCOLS, NROWS, NLAYS, XCELL, and YCELL are taken from de original WRF-chemi file values, but all grid attributes (P_ALP, P_BET, P_GAM, XCENT, YCENT, XORIG, YORIG, and GDNAM) are predefined for a test grid,  so you must change this for your specific case.
 
 ## Output
 
