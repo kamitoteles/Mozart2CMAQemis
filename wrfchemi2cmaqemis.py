@@ -4,6 +4,11 @@
 #+ Check the 'CHANGE' comments to define your directories for the run
 #+ Author: Camilo Moreno
 #+ Email = cama9709@gmail.com
+#* WARNING: All input wrfchemi files must be hourly emission files
+#* whith one layer on Z dimession.
+#* The script will only convert the files if there are all 24 hours
+#* of a day (hr 00 to 23) in wrfchemi files in the input directory 
+#* and if each day has a 00 hr file for the netx day.
 #+---------------------------------------------------------------------
 #%%
 import re
@@ -246,6 +251,10 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
         space = 16 - len(spc)
         varlist = varlist + spc + ' '*space
 
+    #CHANGE: This dictionary contains the atrribute values of the netCDF
+    # file. It follows a IOAPI format and it may be edited to fit the 
+    # wanted grid. See this link for guidance:
+    # https://cmascenter.org/ioapi/documentation/all_versions/html/TUTORIAL.html
     cmaq_attrs = {'IOAPI_VERSION': '$Id: @(#) ioapi library version 3.1 $',
                 'EXEC_ID': '????????????????',
                 'FTYPE': np.int32(1),
@@ -261,7 +270,7 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
                 'NROWS': np.int32(len(ds_wrf.dimensions['south_north'])),
                 'NLAYS': np.int32(len(ds_wrf.dimensions['emissions_zdim_stag'])),
                 'NVARS': np.int32(len(cmaq_spc_names)),
-                'GDTYP': np.int32(2),
+                'GDTYP': np.int32(2), # 2 is Lambert Conformal Conic
                 'P_ALP': np.float64(-9.26763916015625),
                 'P_BET': np.float64(19.6556396484375),
                 'P_GAM': np.float64(-72.6330032348633),
@@ -290,7 +299,7 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
 
 # %%
 if __name__ == "__main__":
-    #CHANGE: map_file is the direction of the excle file where the map conversor is alocated
+    #CHANGE: map_file is the direction of the excel file where the map conversor is alocated
     map_file = '/Users/camilo/OneDrive - Universidad de los Andes/Estudio/Tesis_maestría/Code/Emissions_conversor/mozart2cbo5_conv_table.xlsx'
 
     #CHANGE: wrf_dir is the directory where are all the wrfchemi files you want to comvert to CMAQ emission files
