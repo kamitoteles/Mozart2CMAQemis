@@ -2,6 +2,8 @@
 
 wrfchemi2camqemis.py is a python script designed to convert WRF-chemi hour emission files into 25 hours CMAQ emissions files.
 
+This script was developed by Camilo Moreno (@kamitoteles). Any information please email to cama9709@gmail.com
+
 ## Getting the wrfchemi2cmaqemis conversor
 
 1. Clone the repository into your system:
