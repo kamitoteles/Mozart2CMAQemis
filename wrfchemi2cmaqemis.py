@@ -162,8 +162,13 @@ def array_conv(day_files, df_map, dic_cmaq, day, hr):
             wrf_str = df_map.iloc[i]['WRF_SPC']
             conv_fact = df_map.iloc[i]['CONV_FACT']
 
+            #CHANGE: In some specific cases, MCIP reduces the original wrfout
+            # values by one in each side of the grid. You shoul notice if it is
+            # necessary for your case to do the same for wrfarray value below.
+
             wrf_var = ds_wrf.variables[wrf_str]
             wrf_arr = np.ma.getdata(wrf_var[:][:][:][:])
+            #wrf_arr = wrf_arr[:,:,1:-1,1:-1] # # Uncoment if MCIP reduced the wrfout grid laterals by one cell
 
             if len(dic_cmaq[df_map.iloc[i]['CMAQ_SPC']]) == 0:
                 dic_cmaq[cmaq_str] = wrf_arr * conv_fact
@@ -215,6 +220,18 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     df_map -- data frame of the mecanism conversion map
     """
 
+    #* Define COLS, ROWS, and VAR values
+    #CHANGE: In some specific cases, MCIP reduces the original wrfout
+    # values by one in each side of the grid. You shoul notice if it is
+    # necessary for your case to do the same for cols and rows values below.
+
+    cols = len(ds_wrf.dimensions['west_east'])
+    rows = len(ds_wrf.dimensions['south_north'])
+    #cols = len(ds_wrf.dimensions['west_east']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
+    #rows = len(ds_wrf.dimensions['south_north']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
+
+    num_vars = len(cmaq_spc_names)
+
     #* Create new netCDF
     new_cmaq_file = f'{save_dir}/Emis_CMAQ_{day}.ncf'
     ds_new_cmaq = Dataset(new_cmaq_file, open = True, mode = 'w', format=  "NETCDF3_CLASSIC")
@@ -222,9 +239,9 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     #* Create dimenssions
     TSTEP = ds_new_cmaq.createDimension("TSTEP", None)
     LAY = ds_new_cmaq.createDimension("LAY", len(ds_wrf.dimensions['emissions_zdim_stag']))
-    ROW = ds_new_cmaq.createDimension("ROW", len(ds_wrf.dimensions['south_north']))
-    COL = ds_new_cmaq.createDimension("COL", len(ds_wrf.dimensions['west_east']))
-    VAR = ds_new_cmaq.createDimension("VAR", len(cmaq_spc_names))
+    ROW = ds_new_cmaq.createDimension("ROW", rows)
+    COL = ds_new_cmaq.createDimension("COL", cols)
+    VAR = ds_new_cmaq.createDimension("VAR", num_vars)
     DATE_TIME = ds_new_cmaq.createDimension("DATE-TIME", len(dic_cmaq['TFLAG'][0][0][:]))
 
     #* Create variables
@@ -266,10 +283,10 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
                 'STIME': np.int32(hr),
                 'TSTEP': np.int32(10000),
                 'NTHIK': np.int32(1),
-                'NCOLS': np.int32(len(ds_wrf.dimensions['west_east'])),
-                'NROWS': np.int32(len(ds_wrf.dimensions['south_north'])),
+                'NCOLS': np.int32(cols),
+                'NROWS': np.int32(rows),
                 'NLAYS': np.int32(len(ds_wrf.dimensions['emissions_zdim_stag'])),
-                'NVARS': np.int32(len(cmaq_spc_names)),
+                'NVARS': np.int32(num_vars),
                 'GDTYP': np.int32(2), # 2 is Lambert Conformal Conic
                 'P_ALP': np.float64(-9.26763916015625),
                 'P_BET': np.float64(19.6556396484375),
@@ -303,10 +320,10 @@ if __name__ == "__main__":
     map_file = '/Users/camilo/OneDrive - Universidad de los Andes/Estudio/Tesis_maestría/Code/Emissions_conversor/mozart2cbo5_conv_table.xlsx'
 
     #CHANGE: wrf_dir is the directory where are all the wrfchemi files you want to comvert to CMAQ emission files
-    wrf_dir = '/Volumes/Avispa/wrfchemi_original/MOZART_sep'
+    wrf_dir = '/Volumes/Avispa/Emissions/wrfchemi_original/MOZART_feb'
 
     #CHANGE: save_dir is the directory where you want to save all the new netCDF emission files
-    save_dir = '/Volumes/Avispa/emis/Sep_2018'
+    save_dir = '/Volumes/Avispa/Emissions/CMAQ_emis/Feb_2018'
     
     df_map = set_conv_map(map_file)
     dic_cmaq, cmaq_spc_names = create_cmaq_spc(df_map)
