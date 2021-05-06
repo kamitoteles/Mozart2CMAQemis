@@ -245,17 +245,17 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     DATE_TIME = ds_new_cmaq.createDimension("DATE-TIME", len(dic_cmaq['TFLAG'][0][0][:]))
 
     #* Create variables
+    tflag = ds_new_cmaq.createVariable("TFLAG","i4",("TSTEP","VAR", "DATE-TIME"))
+    tflag.units = '<YYYYDDD,HHMMSS>'
+    tflag.long_name = 'TFLAG'
+    tflag.var_desc = 'Timestep-valid flags:  (1) YYYYDDD or (2) HHMMSS'
+
     for spc in cmaq_spc_names:
         unt = list(df_map[df_map['CMAQ_SPC'] == spc]['UNITS_SDA'])[0]
         var_temp = ds_new_cmaq.createVariable(spc,"f4",("TSTEP", "LAY", "ROW", "COL"))
         var_temp.units = unt
         var_temp.long_name = spc
         var_temp.var_desc = f'Model species {spc}'
-
-    tflag = ds_new_cmaq.createVariable("TFLAG","i4",("TSTEP","VAR", "DATE-TIME"))
-    tflag.units = '<YYYYDDD,HHMMSS>'
-    tflag.long_name = 'TFLAG'
-    tflag.var_desc = 'Timestep-valid flags:  (1) YYYYDDD or (2) HHMMSS'
 
     #* Fill variables
     ds_new_cmaq.variables['TFLAG'][:, :, :] = dic_cmaq['TFLAG']
@@ -321,10 +321,10 @@ if __name__ == "__main__":
     map_file = '/Users/camilo/OneDrive - Universidad de los Andes/Estudio/Tesis_maestría/Code/Emissions_conversor/mozart2cbo5_conv_table.xlsx'
 
     #CHANGE: wrf_dir is the directory where are all the wrfchemi files you want to comvert to CMAQ emission files
-    wrf_dir = '/Volumes/Avispa/Emissions/wrfchemi_original/MOZART_feb'
+    wrf_dir = '/Volumes/Avispa/Emissions/wrfchemi_original/MOZART_sep'
 
     #CHANGE: save_dir is the directory where you want to save all the new netCDF emission files
-    save_dir = '/Volumes/Avispa/Emissions/CMAQ_emis/Feb_2018'
+    save_dir = '/Volumes/Avispa/Emissions/CMAQ_emis/Sep_2018'
     
     df_map = set_conv_map(map_file)
     dic_cmaq, cmaq_spc_names = create_cmaq_spc(df_map)
