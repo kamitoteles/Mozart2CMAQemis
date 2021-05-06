@@ -187,7 +187,7 @@ def array_conv(day_files, df_map, dic_cmaq, day, hr):
                     dic_cmaq[cmaq_str] = dic_cmaq[cmaq_str] + (wrf_arr * conv_fact * pt_unit_conv )
         
         # TFLAG array
-        dic_cmaq['TFLAG_temp'] = np.array([np.tile([day, hr], (len(cmaq_spc_names) + 1, 1))])
+        dic_cmaq['TFLAG_temp'] = np.array([np.tile([day, hr], (len(cmaq_spc_names), 1))])
 
         if count == 0:
             count = 1
@@ -230,7 +230,7 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     #cols = len(ds_wrf.dimensions['west_east']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
     #rows = len(ds_wrf.dimensions['south_north']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
 
-    num_vars = len(cmaq_spc_names) + 1
+    num_vars = len(cmaq_spc_names)
 
     #* Create new netCDF
     new_cmaq_file = f'{save_dir}/Emis_CMAQ_{day}.ncf'
@@ -238,11 +238,11 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
 
     #* Create dimenssions
     TSTEP = ds_new_cmaq.createDimension("TSTEP", None)
+    DATE_TIME = ds_new_cmaq.createDimension("DATE-TIME", len(dic_cmaq['TFLAG'][0][0][:]))
+    VAR = ds_new_cmaq.createDimension("VAR", num_vars)
     LAY = ds_new_cmaq.createDimension("LAY", len(ds_wrf.dimensions['emissions_zdim_stag']))
     ROW = ds_new_cmaq.createDimension("ROW", rows)
     COL = ds_new_cmaq.createDimension("COL", cols)
-    VAR = ds_new_cmaq.createDimension("VAR", num_vars)
-    DATE_TIME = ds_new_cmaq.createDimension("DATE-TIME", len(dic_cmaq['TFLAG'][0][0][:]))
 
     #* Create variables
     tflag = ds_new_cmaq.createVariable("TFLAG","i4",("TSTEP","VAR", "DATE-TIME"))
