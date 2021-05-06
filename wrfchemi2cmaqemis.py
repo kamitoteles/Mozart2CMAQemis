@@ -187,7 +187,7 @@ def array_conv(day_files, df_map, dic_cmaq, day, hr):
                     dic_cmaq[cmaq_str] = dic_cmaq[cmaq_str] + (wrf_arr * conv_fact * pt_unit_conv )
         
         # TFLAG array
-        dic_cmaq['TFLAG_temp'] = np.array([np.tile([day, hr], (len(cmaq_spc_names), 1))])
+        dic_cmaq['TFLAG_temp'] = np.array([np.tile([day, hr], (len(cmaq_spc_names) + 1, 1))])
 
         if count == 0:
             count = 1
@@ -230,7 +230,7 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     #cols = len(ds_wrf.dimensions['west_east']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
     #rows = len(ds_wrf.dimensions['south_north']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
 
-    num_vars = len(cmaq_spc_names)
+    num_vars = len(cmaq_spc_names) + 1
 
     #* Create new netCDF
     new_cmaq_file = f'{save_dir}/Emis_CMAQ_{day}.ncf'
@@ -258,15 +258,16 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     tflag.var_desc = 'Timestep-valid flags:  (1) YYYYDDD or (2) HHMMSS'
 
     #* Fill variables
+    ds_new_cmaq.variables['TFLAG'][:, :, :] = dic_cmaq['TFLAG']
     for spc in cmaq_spc_names:
         ds_new_cmaq.variables[spc][:, :, :] = dic_cmaq[spc]
-    ds_new_cmaq.variables['TFLAG'][:, :, :] = dic_cmaq['TFLAG']
 
     #* Creatae attributes
     varlist = ''
     for spc in cmaq_spc_names:
         space = 16 - len(spc)
         varlist = varlist + spc + ' '*space
+
 
     #CHANGE: This dictionary contains the atrribute values of the netCDF
     # file. It follows a IOAPI format and it may be edited to fit the 
