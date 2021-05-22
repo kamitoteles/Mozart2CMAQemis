@@ -154,9 +154,6 @@ def array_conv(day_files, df_map, dic_cmaq, day, hr):
         wrf_dy = ds_wrf.DY
 
         for i in range(0,len(df_map)):
-            gas_unit_conv = ((wrf_dx * wrf_dy) / 1000) / 3600
-            pt_unit_conv = (wrf_dx * wrf_dy) / 1000000
-
             cmaq_str = df_map.iloc[i]['CMAQ_SPC'] + '_temp'
 
             wrf_str = df_map.iloc[i]['WRF_SPC']
@@ -168,23 +165,27 @@ def array_conv(day_files, df_map, dic_cmaq, day, hr):
 
             wrf_var = ds_wrf.variables[wrf_str]
             wrf_arr = np.ma.getdata(wrf_var[:][:][:][:])
-            #wrf_arr = wrf_arr[:,:,1:-1,1:-1] # # Uncoment if MCIP reduced the wrfout grid laterals by one cell
+            wrf_arr = wrf_arr[:,:,1:-1,1:-1]  # Uncoment if final grid is one cell smaller in all borders
+         
+            if wrf_var.units == 'mol km^-2 hr^-1':
+                unit_conv = (wrf_dx/1000) * (wrf_dy/1000) / 3600
+                if df_map.iloc[i]['UNITS_SDA'] == 'g/s':
+                    mol_weigth = df_map.iloc[i]['MW']
+                    unit_conv = unit_conv * mol_weigth
+                if len(dic_cmaq[df_map.iloc[i]['CMAQ_SPC']]) == 0:
+                    dic_cmaq[cmaq_str] = (wrf_arr * conv_fact * unit_conv)
+                else:
+                    dic_cmaq[cmaq_str] = dic_cmaq[cmaq_str] + (wrf_arr * conv_fact * unit_conv)
 
-            if len(dic_cmaq[df_map.iloc[i]['CMAQ_SPC']]) == 0:
-                dic_cmaq[cmaq_str] = wrf_arr * conv_fact
-    
-            else:
-                if wrf_var.units == 'mol km^-2 hr^-1':
-                    if df_map.iloc[i]['UNITS_SDA'] == 'g/s':
-                        mol_weigth = df_map.iloc[i]['MW']
-                        gas_unit_conv = gas_unit_conv * mol_weigth
-                    dic_cmaq[cmaq_str] = dic_cmaq[cmaq_str] + (wrf_arr * conv_fact * gas_unit_conv)
-
-                elif wrf_var.units == 'ug m^-2 s^-1':
-                    if df_map.iloc[i]['UNITS_SDA'] == 'moles/s':
-                        mol_weigth = df_map.iloc[i]['MW']
-                        pt_unit_conv = pt_unit_conv / mol_weigth
-                    dic_cmaq[cmaq_str] = dic_cmaq[cmaq_str] + (wrf_arr * conv_fact * pt_unit_conv )
+            elif wrf_var.units == 'ug m^-2 s^-1':
+                unit_conv = (wrf_dx) * (wrf_dy) / 1000000
+                if df_map.iloc[i]['UNITS_SDA'] == 'moles/s':
+                    mol_weigth = df_map.iloc[i]['MW']
+                    unit_conv = unit_conv / mol_weigth
+                if len(dic_cmaq[df_map.iloc[i]['CMAQ_SPC']]) == 0:
+                    dic_cmaq[cmaq_str] = (wrf_arr * conv_fact * unit_conv)
+                else:
+                    dic_cmaq[cmaq_str] = dic_cmaq[cmaq_str] + (wrf_arr * conv_fact * unit_conv )
         
         # TFLAG array
         dic_cmaq['TFLAG_temp'] = np.array([np.tile([day, hr], (len(cmaq_spc_names), 1))])
@@ -225,10 +226,10 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     # values by one in each side of the grid. You shoul notice if it is
     # necessary for your case to do the same for cols and rows values below.
 
-    cols = len(ds_wrf.dimensions['west_east'])
-    rows = len(ds_wrf.dimensions['south_north'])
-    #cols = len(ds_wrf.dimensions['west_east']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
-    #rows = len(ds_wrf.dimensions['south_north']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
+    #cols = len(ds_wrf.dimensions['west_east'])
+    #rows = len(ds_wrf.dimensions['south_north'])
+    cols = len(ds_wrf.dimensions['west_east']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
+    rows = len(ds_wrf.dimensions['south_north']) - 2 # Uncoment if MCIP reduced the wrfout grid laterals by one cell
 
     num_vars = len(cmaq_spc_names)
 
@@ -317,14 +318,14 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
 
 # %%
 if __name__ == "__main__":
-    #CHANGE: map_file is the direction of the excel file where the map conversor is alocated
+    #CHANGE: map_file is the path of the excel file where the map conversor is alocated
     map_file = '/Users/camilo/OneDrive - Universidad de los Andes/Estudio/Tesis_maestría/Code/Emissions_conversor/mozart2cbo5_conv_table.xlsx'
 
-    #CHANGE: wrf_dir is the directory where are all the wrfchemi files you want to comvert to CMAQ emission files
-    wrf_dir = '/Volumes/Avispa/Emissions/wrfchemi_original/MOZART_sep'
+    #CHANGE: wrf_dir is the directory path where are all the wrfchemi files you want to comvert to CMAQ emission files
+    wrf_dir = '/Volumes/Avispa/Emissions/wrfchemi_original/MOZART_feb'
 
-    #CHANGE: save_dir is the directory where you want to save all the new netCDF emission files
-    save_dir = '/Volumes/Avispa/Emissions/CMAQ_emis/Sep_2018'
+    #CHANGE: save_dir is the directory path where you want to save all the new netCDF emission files
+    save_dir = '/Volumes/Avispa/Emissions/CMAQ_emis/Feb_2018'
     
     df_map = set_conv_map(map_file)
     dic_cmaq, cmaq_spc_names = create_cmaq_spc(df_map)
