@@ -208,6 +208,24 @@ def array_conv(day_files, df_map, dic_cmaq, day, hr):
         hr = (hr + 10000) % 240000
     return dic_cmaq, ds_wrf
 
+def monthly_date(day):
+    """convert date from YYYYDDD to YYYYMMDD.
+
+    Keyword arguments:
+    day -- int of the day in format YYYYDDD
+    """
+    day_str = str(day)
+    year = int(day_str[0:4])
+    day_y = int(day_str[4:])
+
+    date = datetime(year, 1, 1) + timedelta(day_y - 1)
+    daym = date.timetuple().tm_mday
+    str_daym = '0'*(2 - len(str(daym))) + str(daym)
+    month = date.timetuple().tm_mon
+    str_month = '0'*(2 - len(str(month))) + str(month)
+
+    return str(year) + str_month + str_daym
+
 def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     """Create Final NETCDF file.
 
@@ -234,7 +252,8 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     num_vars = len(cmaq_spc_names)
 
     #* Create new netCDF
-    new_cmaq_file = f'{save_dir}/Emis_CMAQ_{day}.ncf'
+    day_monthly = monthly_date(day)
+    new_cmaq_file = f'{save_dir}/Emis_CMAQ_{day_monthly}.ncf'
     ds_new_cmaq = Dataset(new_cmaq_file, open = True, mode = 'w', format=  "NETCDF3_CLASSIC")
 
     #* Create dimenssions
@@ -314,7 +333,7 @@ def create_ncfile(save_dir, day, hr, ds_wrf, cmaq_spc_names, dic_cmaq, df_map):
     #+ Close new netcdf file
     ds_new_cmaq.close()
 
-    print(f"{day} Netcdf file DONE")
+    print(f"{day_monthly} emissions file DONE")
 
 # %%
 if __name__ == "__main__":
@@ -322,10 +341,10 @@ if __name__ == "__main__":
     map_file = '/Users/camilo/OneDrive - Universidad de los Andes/Estudio/Tesis_maestría/Code/Emissions_conversor/mozart2cbo5_conv_table.xlsx'
 
     #CHANGE: wrf_dir is the directory path where are all the wrfchemi files you want to comvert to CMAQ emission files
-    wrf_dir = '/Volumes/Avispa/Emissions/wrfchemi_original/MOZART_feb'
+    wrf_dir = '/Volumes/Avispa/Emissions/wrfchemi_original/MOZART_sep'
 
     #CHANGE: save_dir is the directory path where you want to save all the new netCDF emission files
-    save_dir = '/Volumes/Avispa/Emissions/CMAQ_emis/Feb_2018'
+    save_dir = '/Volumes/Avispa/Emissions/CMAQ_emis/Sep_2018'
     
     df_map = set_conv_map(map_file)
     dic_cmaq, cmaq_spc_names = create_cmaq_spc(df_map)
